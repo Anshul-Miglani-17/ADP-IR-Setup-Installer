@@ -1,0 +1,1059 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ZADP & IR Setup Installer</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: { 50:'#eff6ff', 100:'#dbeafe', 200:'#bfdbfe', 400:'#60a5fa', 500:'#3b82f6', 600:'#2563eb', 700:'#1d4ed8' },
+            surface: { 800:'#1e293b', 850:'#172033', 900:'#0f172a', 950:'#0a0f1a' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    body { background: #0f172a; }
+    .step-hidden { display: none; }
+    #terminal { font-family: 'Menlo', 'Consolas', 'Courier New', monospace; }
+    #terminal::-webkit-scrollbar { width: 6px; }
+    #terminal::-webkit-scrollbar-thumb { background: #334155; border-radius: 3px; }
+    .card-select { transition: all 0.2s ease; }
+    .card-select:hover { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(59,130,246,0.15); }
+    .card-select.selected { border-color: #3b82f6; background: rgba(59,130,246,0.08); }
+    @keyframes pulse-dot { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+    .pulse-dot { animation: pulse-dot 1.5s ease-in-out infinite; }
+    input:focus, select:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 2px rgba(59,130,246,0.25); }
+  </style>
+</head>
+<body class="text-slate-200 min-h-screen">
+
+  <!-- Header -->
+  <header class="border-b border-slate-700/50 bg-surface-950/80 backdrop-blur sticky top-0 z-50">
+    <div class="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="w-9 h-9 rounded-lg bg-brand-600 flex items-center justify-center">
+          <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </div>
+        <div>
+          <h1 class="text-lg font-semibold text-white">Setup Installer</h1>
+          <p class="text-xs text-slate-400">ZADP & Incident Receiver</p>
+        </div>
+      </div>
+      <a href="{{ base_path }}/download/setup-script"
+         class="flex items-center gap-2 px-4 py-2 rounded-lg border border-slate-600 text-slate-300 text-sm hover:bg-slate-800 hover:text-white transition">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/></svg>
+        Helper Functions
+      </a>
+    </div>
+  </header>
+
+  <!-- Steps indicator -->
+  <div class="max-w-4xl mx-auto px-6 pt-6">
+    <div id="steps-bar" class="flex items-center gap-2 text-sm mb-8">
+      <span data-step="1" class="step-pill active">1. Select Service</span>
+      <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+      <span data-step="2" class="step-pill">2. Configure</span>
+      <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+      <span data-step="3" class="step-pill">3. Review</span>
+      <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+      <span data-step="4" class="step-pill">4. Run</span>
+    </div>
+    <style>
+      .step-pill { padding: 4px 12px; border-radius: 9999px; background: #1e293b; color: #64748b; }
+      .step-pill.active { background: #1e3a5f; color: #60a5fa; font-weight: 500; }
+      .step-pill.done { background: #14532d; color: #4ade80; }
+    </style>
+  </div>
+
+  <main class="max-w-4xl mx-auto px-6 pb-16">
+
+    <!-- ============================================== -->
+    <!-- STEP 1: Select Service                         -->
+    <!-- ============================================== -->
+    <div id="step-1">
+      <h2 class="text-2xl font-bold text-white mb-2">What do you want to install?</h2>
+      <p class="text-slate-400 mb-6">Choose the service to set up on your remote server.</p>
+
+      <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-8">
+        <!-- ZADP Card -->
+        <div class="card-select cursor-pointer border-2 border-slate-700 rounded-xl p-6 bg-surface-850"
+             onclick="selectService('zadp')" id="card-zadp">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-lg bg-blue-900/50 flex items-center justify-center">
+              <svg class="w-5 h-5 text-blue-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+            </div>
+            <h3 class="text-lg font-semibold text-white">ZADP</h3>
+          </div>
+          <ul class="text-sm text-slate-400 list-disc list-inside space-y-1">
+            <li>Add ADP from SMUI &gt; Administration &gt; Index Tools &gt; Add Index Tool.</li>
+            <li>Download ZIP Cert.</li>
+          </ul>
+        </div>
+
+        <!-- IR Card -->
+        <div class="card-select cursor-pointer border-2 border-slate-700 rounded-xl p-6 bg-surface-850"
+             onclick="selectService('ir')" id="card-ir">
+          <div class="flex items-center gap-3 mb-3">
+            <div class="w-10 h-10 rounded-lg bg-emerald-900/50 flex items-center justify-center">
+              <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+            </div>
+            <h3 class="text-lg font-semibold text-white">IR (Incident Receiver)</h3>
+          </div>
+          <ul class="text-sm text-slate-400 list-disc list-inside space-y-1">
+            <li>SFTP-based Incident Receiver.</li>
+            <li>Add IR from SMUI &gt; Administration &gt; DLP Incident Receiver &gt; Add IR. Download ZIP Cert.</li>
+            <li>Use Port <code class="text-slate-300 font-mono">1344</code> in DLP Incident Receiver while adding IR in UI.</li>
+          </ul>
+        </div>
+      </div>
+
+      <button id="btn-step1-next" disabled onclick="goToStep(2)"
+              class="px-6 py-2.5 rounded-lg bg-brand-600 text-white font-medium disabled:opacity-40 disabled:cursor-not-allowed hover:bg-brand-700 transition">
+        Next &rarr;
+      </button>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- STEP 2: Configure                              -->
+    <!-- ============================================== -->
+    <div id="step-2" class="step-hidden">
+      <h2 class="text-2xl font-bold text-white mb-2" id="step2-title">Configuration</h2>
+      <p class="text-slate-400 mb-6">Fill in the details for your setup.</p>
+
+      <form id="config-form" class="space-y-6" onsubmit="return false">
+
+        <!-- Server Access -->
+        <fieldset class="border border-slate-700/60 rounded-xl p-5 space-y-4">
+          <legend class="text-sm font-medium text-slate-300 px-2">Server Access</legend>
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label class="block text-sm text-slate-400 mb-1">Server IP <span class="text-red-400">*</span></label>
+              <input type="text" name="server_ip" required placeholder="e.g. 10.73.22.87"
+                     class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-600">
+            </div>
+            <div>
+              <label class="block text-sm text-slate-400 mb-1">SSH Username</label>
+              <input type="text" name="ssh_username" value="zsroot" placeholder="zsroot"
+                     class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-600">
+            </div>
+            <div>
+              <label class="block text-sm text-slate-400 mb-1">SSH Password <span class="text-red-400">*</span></label>
+              <input type="password" name="ssh_password" required
+                     class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-600">
+            </div>
+            <div>
+              <label class="block text-sm text-slate-400 mb-1">SSH Port</label>
+              <input type="text" name="ssh_port" value="22" placeholder="22"
+                     class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-600">
+            </div>
+          </div>
+        </fieldset>
+
+        <!-- Certificate -->
+        <fieldset class="border border-slate-700/60 rounded-xl p-5 space-y-4">
+          <legend class="text-sm font-medium text-slate-300 px-2">Certificate</legend>
+          <div>
+            <label class="block text-sm text-slate-400 mb-1">Certificate zip filename <span class="text-red-400">*</span></label>
+            <input type="text" name="zip_file" required placeholder="e.g. AdpClientCertificate_xyz.zip"
+                   class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-600">
+            <p class="text-xs text-slate-500 mt-1">If already on server at <code class="text-slate-400">/home/zsroot/</code>, just enter the filename above.</p>
+          </div>
+          <div>
+            <label class="block text-sm text-slate-400 mb-2">Or upload the zip file from your computer</label>
+            <div id="upload-zone"
+                 class="relative border-2 border-dashed border-slate-600 rounded-lg p-4 text-center cursor-pointer hover:border-blue-500/60 transition">
+              <input type="file" id="zip-upload" accept=".zip" class="absolute inset-0 opacity-0 cursor-pointer">
+              <svg class="w-8 h-8 mx-auto text-slate-500 mb-2" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5"/></svg>
+              <p class="text-sm text-slate-400">Click or drag a <span class="text-white font-medium">.zip</span> file here</p>
+              <p id="upload-status" class="text-xs mt-1 text-slate-500"></p>
+            </div>
+            <button type="button" id="btn-upload-retry" onclick="retryUpload()" class="hidden mt-2 px-4 py-1.5 rounded-lg bg-blue-600/80 text-white text-sm hover:bg-blue-600 transition">
+              Upload to Server
+            </button>
+          </div>
+        </fieldset>
+
+        <!-- Environment -->
+        <fieldset class="border border-slate-700/60 rounded-xl p-5 space-y-4">
+          <legend class="text-sm font-medium text-slate-300 px-2">Environment</legend>
+          <div>
+            <label class="block text-sm text-slate-400 mb-1">Setup Type <span class="text-red-400">*</span></label>
+            <select name="setup_type" onchange="toggleLocalFields()"
+                    class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-white">
+              <option value="local">Local</option>
+              <option value="prod">Production</option>
+            </select>
+          </div>
+          <!-- Prod banner -->
+          <div id="prod-banner" class="hidden p-3 rounded-lg border border-amber-600/40 bg-amber-900/20 text-amber-300 text-sm">
+            <p class="font-semibold mb-1">Production Mode</p>
+            <p class="text-amber-400/80 text-xs">If you are using a Lab VM, get it whitelisted by the LAB team. Or use an Azure / AWS hosted VM.</p>
+          </div>
+        </fieldset>
+
+        <!-- Local-only fields (hidden in prod) -->
+        <div id="local-fields">
+          <!-- Cloud Name -->
+          <fieldset class="border border-slate-700/60 rounded-xl p-5 space-y-4 mb-6">
+            <legend class="text-sm font-medium text-slate-300 px-2">Cloud</legend>
+            <div>
+              <label class="block text-sm text-slate-400 mb-1">Cloud Name <span class="text-red-400">*</span></label>
+              <input type="text" name="cloud_name" placeholder="e.g. zscalerbeta"
+                     class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-600">
+            </div>
+          </fieldset>
+
+          <!-- ZADP-only: Network (CA + SMUI) -->
+          <fieldset id="fs-network" class="border border-slate-700/60 rounded-xl p-5 space-y-4 hidden mb-6">
+            <legend class="text-sm font-medium text-slate-300 px-2">Network (ZADP only)</legend>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div>
+                <label class="block text-sm text-slate-400 mb-1">CA Server IP <span class="text-red-400">*</span></label>
+                <input type="text" name="ca_ip" placeholder="CA IP"
+                       class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-600">
+              </div>
+              <div>
+                <label class="block text-sm text-slate-400 mb-1">SMUI Server IP <span class="text-red-400">*</span></label>
+                <input type="text" name="smui_ip" placeholder="SMUI IP"
+                       class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-600">
+              </div>
+              <div>
+                <label class="block text-sm text-slate-400 mb-1">SMUI Port</label>
+                <input type="text" name="smui_port" value="443" placeholder="443"
+                       class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-600">
+              </div>
+            </div>
+          </fieldset>
+
+          <!-- CDSS + Build -->
+          <fieldset class="border border-slate-700/60 rounded-xl p-5 space-y-4 mb-6">
+            <legend class="text-sm font-medium text-slate-300 px-2">Build Options</legend>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label class="block text-sm text-slate-400 mb-1">CDSS IP</label>
+                <input type="text" name="cdss_ip" placeholder="Leave empty to skip"
+                       class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-600">
+                <p class="text-xs text-slate-500 mt-1">For automatic build download.</p>
+              </div>
+              <div>
+                <label id="build-url-label" class="block text-sm text-slate-400 mb-1">Build URL</label>
+                <input type="text" name="build_path" id="build-url-input" placeholder="https://build24.eng.zscaler.com/bsd11/"
+                       class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-600">
+                <p id="build-url-hint" class="text-xs text-slate-500 mt-1">Use the correct build for your service. e.g.<br>
+                  <code class="text-slate-400">zadp_6.2r.2603.0.0_prod.72...sh</code> for ZADP<br>
+                  <code class="text-slate-400">zirsvr_6.2r.2603.0.0_prod.72...sh</code> for IR</p>
+              </div>
+            </div>
+          </fieldset>
+        </div>
+
+        <!-- IR-only: IR Directory -->
+        <fieldset id="fs-ir-dir" class="border border-slate-700/60 rounded-xl p-5 space-y-4 hidden">
+          <legend class="text-sm font-medium text-slate-300 px-2">IR Storage Directory</legend>
+          <div>
+            <label class="block text-sm text-slate-400 mb-1">Directory path on server</label>
+            <input type="text" name="ir_dir" value="/home/zsroot/IR" placeholder="/home/zsroot/IR"
+                   class="w-full bg-surface-900 border border-slate-700 rounded-lg px-3 py-2 text-white placeholder-slate-600">
+            <p class="text-xs text-slate-500 mt-1">IR will store received files here. Change if you need a different location.</p>
+          </div>
+        </fieldset>
+
+        <div class="flex gap-3">
+          <button type="button" onclick="goToStep(1)"
+                  class="px-5 py-2.5 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800 transition">
+            &larr; Back
+          </button>
+          <button type="button" onclick="goToStep(3)"
+                  class="px-6 py-2.5 rounded-lg bg-brand-600 text-white font-medium hover:bg-brand-700 transition">
+            Review &rarr;
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- STEP 3: Review                                 -->
+    <!-- ============================================== -->
+    <div id="step-3" class="step-hidden">
+      <h2 class="text-2xl font-bold text-white mb-2">Review Configuration</h2>
+      <p class="text-slate-400 mb-6">Double-check everything before starting.</p>
+
+      <div id="review-content" class="bg-surface-850 border border-slate-700/60 rounded-xl p-6 mb-6 space-y-2 text-sm font-mono">
+        <!-- Filled dynamically -->
+      </div>
+
+      <div class="flex gap-3">
+        <button onclick="goToStep(2)"
+                class="px-5 py-2.5 rounded-lg border border-slate-600 text-slate-300 hover:bg-slate-800 transition">
+          &larr; Edit
+        </button>
+        <button id="btn-start" onclick="startSetup()"
+                class="px-6 py-2.5 rounded-lg bg-emerald-600 text-white font-medium hover:bg-emerald-700 transition">
+          Start Setup
+        </button>
+      </div>
+    </div>
+
+    <!-- ============================================== -->
+    <!-- STEP 4: Run (live terminal)                    -->
+    <!-- ============================================== -->
+    <div id="step-4" class="step-hidden">
+      <div class="flex items-center justify-between mb-4">
+        <div>
+          <h2 class="text-2xl font-bold text-white mb-1">Running Setup</h2>
+          <p class="text-slate-400 text-sm" id="run-status">
+            <span class="inline-block w-2 h-2 rounded-full bg-blue-400 mr-1.5 pulse-dot"></span>
+            In progress...
+          </p>
+        </div>
+        <div id="run-elapsed" class="text-sm text-slate-500 font-mono"></div>
+      </div>
+
+      <!-- Step progress tracker -->
+      <div id="step-tracker" class="bg-surface-850 border border-slate-700/60 rounded-xl p-4 mb-4">
+        <div class="grid grid-cols-4 md:grid-cols-8 gap-2 text-xs" id="step-tracker-items">
+          <div data-setup-step="0" class="setup-step-item pending">
+            <div class="step-icon">0</div>
+            <span>Root</span>
+          </div>
+          <div data-setup-step="1" class="setup-step-item pending">
+            <div class="step-icon">1</div>
+            <span>Zip check</span>
+          </div>
+          <div data-setup-step="2" class="setup-step-item pending">
+            <div class="step-icon">2</div>
+            <span>Cleanup</span>
+          </div>
+          <div data-setup-step="3" class="setup-step-item pending">
+            <div class="step-icon">3</div>
+            <span>Hosts</span>
+          </div>
+          <div data-setup-step="4" class="setup-step-item pending">
+            <div class="step-icon">4</div>
+            <span id="step4-label">Configure</span>
+          </div>
+          <div data-setup-step="5" class="setup-step-item pending">
+            <div class="step-icon">5</div>
+            <span>Build</span>
+          </div>
+          <div data-setup-step="6" class="setup-step-item pending">
+            <div class="step-icon">6</div>
+            <span id="step6-label">QA params</span>
+          </div>
+          <div data-setup-step="7" class="setup-step-item pending">
+            <div class="step-icon">7</div>
+            <span>Status</span>
+          </div>
+        </div>
+        <div class="mt-3 pt-3 border-t border-slate-700/40 text-sm" id="current-step-desc">
+          <span class="text-slate-400">Waiting to start...</span>
+        </div>
+      </div>
+      <style>
+        .setup-step-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: #475569; transition: all 0.3s; }
+        .setup-step-item .step-icon { width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; border: 2px solid #334155; background: #0f172a; transition: all 0.3s; }
+        .setup-step-item.active { color: #60a5fa; }
+        .setup-step-item.active .step-icon { border-color: #3b82f6; background: #1e3a5f; color: #60a5fa; box-shadow: 0 0 12px rgba(59,130,246,0.3); }
+        .setup-step-item.done { color: #4ade80; }
+        .setup-step-item.done .step-icon { border-color: #22c55e; background: #14532d; color: #4ade80; }
+        .setup-step-item.skipped { color: #94a3b8; }
+        .setup-step-item.skipped .step-icon { border-color: #475569; background: #1e293b; color: #64748b; }
+      </style>
+
+      <div id="terminal"
+           class="bg-gray-950 border border-slate-700/60 rounded-xl p-4 h-[420px] overflow-y-auto text-sm text-green-400 leading-relaxed whitespace-pre-wrap">
+      </div>
+
+      <div class="mt-4 flex gap-3">
+        <button id="btn-abort" onclick="abortSetup()"
+                class="px-5 py-2.5 rounded-lg bg-red-600/80 text-white font-medium hover:bg-red-600 transition">
+          Abort Setup
+        </button>
+        <div id="run-actions" class="hidden flex gap-3">
+          <button onclick="startNewSetup()"
+                  class="px-6 py-2.5 rounded-lg bg-brand-600 text-white font-medium hover:bg-brand-700 transition">
+            Run Another Setup
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <!-- Footer -->
+  <footer class="border-t border-slate-800 py-4 text-center text-xs text-slate-500">
+    For any queries / suggestions / improvements, contact: amiglani@zscaler.com
+  </footer>
+
+  <script>
+    // ============================================================ //
+    //  State
+    // ============================================================ //
+    const BASE = '{{ base_path }}';   // subpath prefix (e.g. '/setup-adp-ir' or '')
+    let selectedService = null;
+    let currentStep = 1;
+    let activeSetupStep = -1;
+    let setupStartTime = null;
+    let elapsedTimer = null;
+    let activeJobId = null;
+
+    // Step descriptions for the tracker
+    const stepDescriptions = {
+      0: 'Becoming root and setting ZSINSTANCE...',
+      1: 'Checking if certificate zip file exists on server...',
+      2: 'Cleaning up old installation and rebooting server...',
+      3: 'Updating /etc/hosts entries...',
+      4: 'Running configure with certificate...',
+      5: 'Installing build manually (if needed)...',
+      6: 'Adding QA parameters to sc.conf...',
+      7: 'Restarting service and checking final status...',
+    };
+
+    // ============================================================ //
+    //  Service selection
+    // ============================================================ //
+    function selectService(svc) {
+      selectedService = svc;
+      document.getElementById('card-zadp').classList.toggle('selected', svc === 'zadp');
+      document.getElementById('card-ir').classList.toggle('selected', svc === 'ir');
+      document.getElementById('btn-step1-next').disabled = false;
+    }
+
+    // ============================================================ //
+    //  Step navigation
+    // ============================================================ //
+    function goToStep(step) {
+      // Validate step 2 form before going to step 3
+      if (step === 3) {
+        const form = document.getElementById('config-form');
+        const isLocal = form.setup_type.value === 'local';
+        const required = ['server_ip', 'ssh_password', 'zip_file'];
+        if (isLocal) {
+          required.push('cloud_name');
+          if (selectedService === 'zadp') {
+            required.push('ca_ip', 'smui_ip');
+          }
+        }
+        for (const name of required) {
+          const el = form.elements[name];
+          if (el && !el.value.trim()) {
+            el.focus();
+            el.classList.add('border-red-500');
+            setTimeout(() => el.classList.remove('border-red-500'), 2000);
+            return;
+          }
+        }
+        buildReview();
+      }
+
+      // Show/hide fields for service
+      if (step === 2) {
+        const isZadp = selectedService === 'zadp';
+        document.getElementById('step2-title').textContent = isZadp ? 'ZADP Configuration' : 'IR Configuration';
+        document.getElementById('fs-ir-dir').classList.toggle('hidden', isZadp);
+        const zipInput = document.querySelector('[name=zip_file]');
+        zipInput.placeholder = isZadp
+          ? 'e.g. AdpClientCertificate_xyz.zip'
+          : 'e.g. IncidentReceiverCertificate_xyz.zip';
+        document.getElementById('build-url-label').textContent = isZadp ? 'ZADP Build URL' : 'ZIRSVR Build URL';
+        toggleLocalFields();
+      }
+
+      // Switch visible step
+      for (let i = 1; i <= 4; i++) {
+        document.getElementById(`step-${i}`).classList.toggle('step-hidden', i !== step);
+      }
+
+      // Update step pills
+      document.querySelectorAll('.step-pill').forEach(pill => {
+        const s = parseInt(pill.dataset.step);
+        pill.classList.remove('active', 'done');
+        if (s === step) pill.classList.add('active');
+        else if (s < step) pill.classList.add('done');
+      });
+
+      currentStep = step;
+    }
+
+    // ============================================================ //
+    //  Toggle local-only fields
+    // ============================================================ //
+    function toggleLocalFields() {
+      const isLocal = document.querySelector('[name=setup_type]').value === 'local';
+      const isProd = !isLocal;
+
+      // Show/hide prod banner
+      document.getElementById('prod-banner').classList.toggle('hidden', isLocal);
+
+      // Show/hide local-only fields (cloud, network, build options)
+      document.getElementById('local-fields').classList.toggle('hidden', isProd);
+
+      // Network section only for ZADP + local
+      if (selectedService === 'zadp' && isLocal) {
+        document.getElementById('fs-network').classList.remove('hidden');
+      } else {
+        document.getElementById('fs-network').classList.add('hidden');
+      }
+    }
+
+    // ============================================================ //
+    //  Build review panel
+    // ============================================================ //
+    function buildReview() {
+      const form = document.getElementById('config-form');
+      const cfg = getConfig();
+      const svcName = selectedService === 'zadp' ? 'ZADP' : 'Incident Receiver (IR)';
+      const isLocal = cfg.setup_type === 'local';
+      const mode = isLocal ? 'LOCAL' : 'PRODUCTION';
+
+      let html = `
+        <div class="flex justify-between py-1"><span class="text-slate-400">Service</span><span class="text-white font-semibold">${svcName}</span></div>
+        <div class="flex justify-between py-1"><span class="text-slate-400">Mode</span><span class="text-white">${mode}</span></div>
+        <hr class="border-slate-700/50 my-2">
+        <div class="flex justify-between py-1"><span class="text-slate-400">Server</span><span class="text-white">${cfg.ssh_username}@${cfg.server_ip}:${cfg.ssh_port}</span></div>
+        <div class="flex justify-between py-1"><span class="text-slate-400">Zip file</span><span class="text-white">${cfg.zip_file}</span></div>
+      `;
+
+      if (isLocal && cfg.cloud_name) {
+        html += `<div class="flex justify-between py-1"><span class="text-slate-400">Cloud</span><span class="text-white">${cfg.cloud_name}</span></div>`;
+      }
+
+      if (!isLocal) {
+        html += `
+          <hr class="border-slate-700/50 my-2">
+          <p class="text-amber-400 text-xs">Production mode — ensure VM is whitelisted by LAB team or use Azure/AWS hosted VM.</p>
+        `;
+      }
+
+      if (selectedService === 'zadp' && isLocal) {
+        html += `
+          <hr class="border-slate-700/50 my-2">
+          <div class="flex justify-between py-1"><span class="text-slate-400">CA IP</span><span class="text-white">${cfg.ca_ip}</span></div>
+          <div class="flex justify-between py-1"><span class="text-slate-400">SMUI IP</span><span class="text-white">${cfg.smui_ip}:${cfg.smui_port || '443'}</span></div>
+        `;
+      }
+
+      if (selectedService === 'ir') {
+        html += `<div class="flex justify-between py-1"><span class="text-slate-400">IR Directory</span><span class="text-white">${cfg.ir_dir || '/home/zsroot/IR'}</span></div>`;
+      }
+
+      if (isLocal && cfg.cdss_ip) {
+        html += `<div class="flex justify-between py-1"><span class="text-slate-400">CDSS IP</span><span class="text-white">${cfg.cdss_ip}</span></div>`;
+      }
+      if (isLocal && cfg.build_path) {
+        const displayUrl = cfg.build_path.length > 60 ? cfg.build_path.slice(0, 57) + '...' : cfg.build_path;
+        html += `<div class="flex justify-between py-1"><span class="text-slate-400">Build URL</span><span class="text-white text-xs break-all">${displayUrl}</span></div>`;
+      }
+
+      if (selectedService === 'zadp' && isLocal) {
+        html += `
+          <hr class="border-slate-700/50 my-2">
+          <p class="text-slate-400 text-xs">Local-only extras: /etc/hosts update, QA params added to sc.conf</p>
+        `;
+      }
+
+      document.getElementById('review-content').innerHTML = html;
+    }
+
+    // ============================================================ //
+    //  Collect form data
+    // ============================================================ //
+    function getConfig() {
+      const form = document.getElementById('config-form');
+      const fields = ['server_ip','ssh_username','ssh_password','ssh_port',
+                       'zip_file','setup_type','cloud_name',
+                       'ca_ip','smui_ip','smui_port',
+                       'cdss_ip','build_path','ir_dir'];
+      const cfg = {};
+      for (const f of fields) {
+        const el = form.elements[f];
+        if (el) cfg[f] = el.value.trim();
+      }
+      if (!cfg.ssh_username) cfg.ssh_username = 'zsroot';
+      if (!cfg.ssh_port) cfg.ssh_port = '22';
+      return cfg;
+    }
+
+    // ============================================================ //
+    //  File upload — SCP zip to server via /api/upload
+    // ============================================================ //
+    let pendingUploadFile = null;  // stored if user picks file before filling creds
+
+    document.getElementById('zip-upload').addEventListener('change', async function() {
+      const file = this.files[0];
+      if (!file) return;
+
+      const status = document.getElementById('upload-status');
+      const zone = document.getElementById('upload-zone');
+      const cfg = getConfig();
+
+      // Auto-fill filename regardless
+      document.querySelector('[name=zip_file]').value = file.name;
+
+      if (!cfg.server_ip || !cfg.ssh_password) {
+        pendingUploadFile = file;
+        status.textContent = `Selected: ${file.name} — fill in Server IP & Password, then click "Upload to Server" below.`;
+        status.className = 'text-xs mt-1 text-amber-400';
+        zone.classList.add('border-amber-500/60');
+        showUploadRetryBtn(true);
+        return;
+      }
+
+      pendingUploadFile = null;
+      status.textContent = `Uploading ${file.name} to server...`;
+      status.className = 'text-xs mt-1 text-blue-400';
+      zone.classList.add('border-blue-500/60');
+
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('server_ip', cfg.server_ip);
+      formData.append('ssh_username', cfg.ssh_username);
+      formData.append('ssh_password', cfg.ssh_password);
+      formData.append('ssh_port', cfg.ssh_port);
+
+      try {
+        const resp = await fetch(`${BASE}/api/upload`, {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await resp.json();
+
+        if (data.ok) {
+          status.textContent = `Uploaded: ${data.filename} → ${data.remote_path}`;
+          status.className = 'text-xs mt-1 text-emerald-400';
+          zone.classList.remove('border-blue-500/60');
+          zone.classList.add('border-emerald-500/60');
+          // Auto-fill the filename field
+          document.querySelector('[name=zip_file]').value = data.filename;
+        } else {
+          status.textContent = `Error: ${data.error}`;
+          status.className = 'text-xs mt-1 text-red-400';
+          zone.classList.remove('border-blue-500/60');
+        }
+      } catch (err) {
+        status.textContent = `Upload failed: ${err.message}`;
+        status.className = 'text-xs mt-1 text-red-400';
+        zone.classList.remove('border-blue-500/60');
+      }
+    });
+
+    function showUploadRetryBtn(show) {
+      document.getElementById('btn-upload-retry').classList.toggle('hidden', !show);
+    }
+
+    async function retryUpload() {
+      if (!pendingUploadFile) return;
+      const cfg = getConfig();
+      if (!cfg.server_ip || !cfg.ssh_password) {
+        const status = document.getElementById('upload-status');
+        status.textContent = 'Still missing Server IP or SSH Password!';
+        status.className = 'text-xs mt-1 text-red-400';
+        return;
+      }
+      const status = document.getElementById('upload-status');
+      const zone = document.getElementById('upload-zone');
+
+      status.textContent = `Uploading ${pendingUploadFile.name} to server...`;
+      status.className = 'text-xs mt-1 text-blue-400';
+      zone.className = zone.className.replace(/border-amber-500\/60/g, '');
+      zone.classList.add('border-blue-500/60');
+
+      const formData = new FormData();
+      formData.append('file', pendingUploadFile);
+      formData.append('server_ip', cfg.server_ip);
+      formData.append('ssh_username', cfg.ssh_username);
+      formData.append('ssh_password', cfg.ssh_password);
+      formData.append('ssh_port', cfg.ssh_port);
+
+      try {
+        const resp = await fetch(`${BASE}/api/upload`, { method: 'POST', body: formData });
+        const data = await resp.json();
+        if (data.ok) {
+          status.textContent = `Uploaded: ${data.filename} → ${data.remote_path}`;
+          status.className = 'text-xs mt-1 text-emerald-400';
+          zone.classList.remove('border-blue-500/60');
+          zone.classList.add('border-emerald-500/60');
+          document.querySelector('[name=zip_file]').value = data.filename;
+          pendingUploadFile = null;
+          showUploadRetryBtn(false);
+        } else {
+          status.textContent = `Error: ${data.error}`;
+          status.className = 'text-xs mt-1 text-red-400';
+          zone.classList.remove('border-blue-500/60');
+        }
+      } catch (err) {
+        status.textContent = `Upload failed: ${err.message}`;
+        status.className = 'text-xs mt-1 text-red-400';
+        zone.classList.remove('border-blue-500/60');
+      }
+    }
+
+    // ============================================================ //
+    //  Start the setup job
+    // ============================================================ //
+    async function startSetup() {
+      const btn = document.getElementById('btn-start');
+      btn.disabled = true;
+      btn.textContent = 'Starting...';
+
+      // Update step 4/6 labels based on service
+      if (selectedService === 'ir') {
+        const irDir = getConfig().ir_dir || '/home/zsroot/IR';
+        document.getElementById('step4-label').textContent = 'IR dir';
+        // Fix step 5/6 labels for IR
+        document.querySelector('[data-setup-step="5"] span').textContent = 'Configure IR';
+        document.querySelector('[data-setup-step="6"] span').textContent = 'Manual Build';
+        stepDescriptions[4] = `Creating ${irDir} directory...`;
+        stepDescriptions[5] = 'Running zirsvr configure with SFTP settings...';
+        stepDescriptions[6] = 'Installing build manually (if needed)...';
+      }
+
+      goToStep(4);
+      setupStartTime = Date.now();
+      elapsedTimer = setInterval(updateElapsed, 1000);
+      setSetupStep(0);
+      showAbortBtn(true);
+      enableRefreshGuard();
+
+      const config = getConfig();
+      const body = { service: selectedService, config };
+
+      try {
+        const resp = await fetch(`${BASE}/api/start`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await resp.json();
+
+        if (data.error) {
+          appendTerminal(`ERROR: ${data.error}`);
+          setRunStatus('error', data.error);
+          onJobFinished();
+          return;
+        }
+
+        activeJobId = data.job_id;
+        // Save to localStorage so refresh can reconnect
+        localStorage.setItem('activeJob', JSON.stringify({
+          jobId: data.job_id,
+          service: selectedService,
+          startTime: setupStartTime,
+        }));
+
+        streamLogs(data.job_id);
+      } catch (err) {
+        appendTerminal(`Connection error: ${err.message}`);
+        setRunStatus('error', 'Failed to start');
+        onJobFinished();
+      }
+    }
+
+    // ============================================================ //
+    //  Abort the running setup
+    // ============================================================ //
+    async function abortSetup() {
+      if (!activeJobId) return;
+      const btn = document.getElementById('btn-abort');
+      btn.disabled = true;
+      btn.textContent = 'Aborting...';
+      try {
+        await fetch(`${BASE}/api/abort/${activeJobId}`, { method: 'POST' });
+      } catch (e) {
+        appendTerminal('Failed to send abort signal.');
+      }
+    }
+
+    // ============================================================ //
+    //  Start a new setup (clear state)
+    // ============================================================ //
+    function startNewSetup() {
+      localStorage.removeItem('activeJob');
+      location.reload();
+    }
+
+    // ============================================================ //
+    //  Called when a job finishes (success, fail, abort, error)
+    // ============================================================ //
+    function onJobFinished() {
+      clearInterval(elapsedTimer);
+      showAbortBtn(false);
+      disableRefreshGuard();
+      document.getElementById('run-actions').classList.remove('hidden');
+      localStorage.removeItem('activeJob');
+    }
+
+    // ============================================================ //
+    //  Prevent accidental refresh while job is running
+    // ============================================================ //
+    let refreshGuardActive = false;
+
+    function beforeUnloadHandler(e) {
+      if (!refreshGuardActive) return;
+      e.preventDefault();
+      e.returnValue = 'A setup is still running. Are you sure you want to leave?';
+      return e.returnValue;
+    }
+
+    function keydownGuardHandler(e) {
+      if (!refreshGuardActive) return;
+      // Block F5
+      if (e.key === 'F5') {
+        e.preventDefault();
+        alert('Setup is running! Use the Abort button to stop it first.');
+        return;
+      }
+      // Block Ctrl+R (Windows/Linux) or Cmd+R (Mac)
+      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+        e.preventDefault();
+        alert('Setup is running! Use the Abort button to stop it first.');
+        return;
+      }
+    }
+
+    // Always listen — the flag controls whether they fire
+    window.addEventListener('beforeunload', beforeUnloadHandler);
+    document.addEventListener('keydown', keydownGuardHandler);
+
+    function enableRefreshGuard() {
+      refreshGuardActive = true;
+    }
+
+    function disableRefreshGuard() {
+      refreshGuardActive = false;
+    }
+
+    function showAbortBtn(show) {
+      const btn = document.getElementById('btn-abort');
+      btn.style.display = show ? '' : 'none';
+      btn.disabled = false;
+      btn.textContent = 'Abort Setup';
+    }
+
+    // ============================================================ //
+    //  Elapsed time
+    // ============================================================ //
+    function updateElapsed() {
+      if (!setupStartTime) return;
+      const secs = Math.floor((Date.now() - setupStartTime) / 1000);
+      const m = Math.floor(secs / 60);
+      const s = secs % 60;
+      document.getElementById('run-elapsed').textContent =
+        m > 0 ? `${m}m ${s.toString().padStart(2,'0')}s` : `${s}s`;
+    }
+
+    // ============================================================ //
+    //  Step tracker
+    // ============================================================ //
+    function setSetupStep(num) {
+      if (activeSetupStep >= 0 && activeSetupStep < num) {
+        for (let i = activeSetupStep; i < num; i++) {
+          const prev = document.querySelector(`[data-setup-step="${i}"]`);
+          if (prev) { prev.classList.remove('active','pending'); prev.classList.add('done'); }
+        }
+      }
+      activeSetupStep = num;
+      const el = document.querySelector(`[data-setup-step="${num}"]`);
+      if (el) { el.classList.remove('pending'); el.classList.add('active'); }
+      const desc = document.getElementById('current-step-desc');
+      desc.innerHTML = `<span class="text-blue-400 font-medium">Step ${num}:</span> <span class="text-slate-300">${stepDescriptions[num] || ''}</span>`;
+    }
+
+    function markStepSkipped(num) {
+      const el = document.querySelector(`[data-setup-step="${num}"]`);
+      if (el) { el.classList.remove('active','pending'); el.classList.add('skipped'); }
+    }
+
+    function markAllDone() {
+      for (let i = 0; i <= 7; i++) {
+        const el = document.querySelector(`[data-setup-step="${i}"]`);
+        if (el && el.classList.contains('active')) {
+          el.classList.remove('active'); el.classList.add('done');
+        }
+      }
+      document.getElementById('current-step-desc').innerHTML =
+        '<span class="text-emerald-400 font-medium">All steps completed!</span>';
+    }
+
+    // ============================================================ //
+    //  Parse log messages for step transitions
+    // ============================================================ //
+    function detectStep(text) {
+      const lower = text.toLowerCase();
+      const match = text.match(/---\s*Step\s*(\d+)/i);
+      if (match) {
+        setSetupStep(parseInt(match[1]));
+      }
+      if (lower.includes('becoming root') || lower.includes('setting zsinstance')) {
+        if (activeSetupStep < 0 || activeSetupStep === 0) setSetupStep(0);
+      }
+      if (lower.includes('skipped')) {
+        markStepSkipped(activeSetupStep);
+      }
+      if (lower.includes('setup - finished')) {
+        markAllDone();
+      }
+    }
+
+    // ============================================================ //
+    //  SSE log streaming
+    // ============================================================ //
+    function streamLogs(jobId) {
+      const source = new EventSource(`${BASE}/api/stream/${jobId}`);
+
+      source.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+
+        if (data.type === 'log') {
+          detectStep(data.message);
+          appendTerminal(data.message);
+        } else if (data.type === 'done') {
+          source.close();
+          if (data.status === 'success') {
+            markAllDone();
+            setRunStatus('success', 'Setup completed successfully!');
+          } else if (data.status === 'aborted') {
+            setRunStatus('aborted', 'Setup was aborted.');
+          } else {
+            setRunStatus('error', 'Setup did not complete. Check the log above.');
+          }
+          onJobFinished();
+        }
+      };
+
+      source.onerror = () => {
+        source.close();
+        setRunStatus('error', 'Connection to server lost. Refresh to reconnect.');
+        onJobFinished();
+      };
+    }
+
+    // ============================================================ //
+    //  Terminal helpers
+    // ============================================================ //
+    function appendTerminal(text) {
+      const term = document.getElementById('terminal');
+      if (text.match(/---\s*Step\s*\d+/i)) {
+        const span = document.createElement('span');
+        span.className = 'text-blue-400 font-bold';
+        span.textContent = text + '\n';
+        term.appendChild(span);
+      } else if (text.match(/setup\s*-\s*finished/i) || text.includes('All done!')) {
+        const span = document.createElement('span');
+        span.className = 'text-emerald-400 font-bold';
+        span.textContent = text + '\n';
+        term.appendChild(span);
+      } else if (text.match(/^={3,}/)) {
+        const span = document.createElement('span');
+        span.className = 'text-slate-500';
+        span.textContent = text + '\n';
+        term.appendChild(span);
+      } else if (text.toLowerCase().includes('error')) {
+        const span = document.createElement('span');
+        span.className = 'text-red-400';
+        span.textContent = text + '\n';
+        term.appendChild(span);
+      } else if (text.toLowerCase().includes('aborted')) {
+        const span = document.createElement('span');
+        span.className = 'text-yellow-400 font-bold';
+        span.textContent = text + '\n';
+        term.appendChild(span);
+      } else {
+        term.appendChild(document.createTextNode(text + '\n'));
+      }
+      term.scrollTop = term.scrollHeight;
+    }
+
+    function setRunStatus(status, message) {
+      const el = document.getElementById('run-status');
+      if (status === 'success') {
+        el.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-emerald-400 mr-1.5"></span><span class="text-emerald-400">${message}</span>`;
+      } else if (status === 'aborted') {
+        el.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-yellow-400 mr-1.5"></span><span class="text-yellow-400">${message}</span>`;
+      } else {
+        el.innerHTML = `<span class="inline-block w-2 h-2 rounded-full bg-red-400 mr-1.5"></span><span class="text-red-400">${message}</span>`;
+      }
+    }
+
+    // ============================================================ //
+    //  Reconnect on page load (if a job is active)
+    // ============================================================ //
+    async function tryReconnect() {
+      const saved = localStorage.getItem('activeJob');
+      if (!saved) return;
+
+      let info;
+      try { info = JSON.parse(saved); } catch { localStorage.removeItem('activeJob'); return; }
+
+      console.log('[reconnect] Found saved job:', info.jobId);
+
+      try {
+        const resp = await fetch(`${BASE}/api/job/${info.jobId}`);
+
+        if (!resp.ok) {
+          // Job lost — server likely restarted (debug mode / deploy)
+          console.warn('[reconnect] Job not found on server (server may have restarted)');
+          localStorage.removeItem('activeJob');
+          showJobLostBanner();
+          return;
+        }
+
+        const job = await resp.json();
+        console.log('[reconnect] Job status:', job.status);
+
+        // Set service for label updates
+        selectedService = job.service;
+        if (selectedService === 'ir') {
+          document.getElementById('step4-label').textContent = 'IR dir';
+          document.querySelector('[data-setup-step="5"] span').textContent = 'Configure IR';
+          document.querySelector('[data-setup-step="6"] span').textContent = 'Manual Build';
+          stepDescriptions[4] = 'Creating IR directory...';
+          stepDescriptions[5] = 'Running zirsvr configure with SFTP settings...';
+          stepDescriptions[6] = 'Installing build manually (if needed)...';
+        }
+
+        // Jump to step 4
+        goToStep(4);
+        activeJobId = info.jobId;
+        setupStartTime = info.startTime || Date.now();
+        elapsedTimer = setInterval(updateElapsed, 1000);
+
+        if (job.status === 'running') {
+          showAbortBtn(true);
+          enableRefreshGuard();
+        } else {
+          showAbortBtn(false);
+        }
+
+        // Connect SSE — server will replay history then stream live
+        streamLogs(info.jobId);
+      } catch (err) {
+        console.error('[reconnect] Error:', err);
+        localStorage.removeItem('activeJob');
+        showJobLostBanner();
+      }
+    }
+
+    function showJobLostBanner() {
+      const banner = document.createElement('div');
+      banner.className = 'mb-6 p-4 rounded-xl border border-yellow-600/50 bg-yellow-900/20 text-yellow-300 text-sm';
+      banner.innerHTML = `
+        <p class="font-semibold mb-1">Previous session lost</p>
+        <p class="text-yellow-400/80">The server was restarted (likely due to code changes in debug mode), so your previous job is no longer available.
+        In production (gunicorn without auto-reload), refresh will reconnect to your running job.</p>
+      `;
+      const main = document.querySelector('main');
+      main.insertBefore(banner, main.firstChild);
+    }
+
+    // Run reconnect on page load
+    tryReconnect();
+  </script>
+</body>
+</html>

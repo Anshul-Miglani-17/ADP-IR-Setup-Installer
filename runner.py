@@ -192,14 +192,7 @@ class SSHHelper:
             self._check_abort()
             elapsed = time.time() - start_time
             if elapsed > timeout:
-                self.log(f"Timed out after {timeout}s — reconnecting SSH...")
-                try:
-                    self.disconnect()
-                except Exception:
-                    pass
-                time.sleep(5)
-                self.connect()
-                self.run_sudo_su()
+                self.log(f"Timed out after {timeout}s — reconnecting...")
                 break
             time.sleep(0.5)
             if self.shell.recv_ready():
@@ -237,14 +230,7 @@ class SSHHelper:
             self._check_abort()
             elapsed = time.time() - start_time
             if elapsed > timeout:
-                self.log(f"Timed out after {timeout}s — reconnecting SSH...")
-                try:
-                    self.disconnect()
-                except Exception:
-                    pass
-                time.sleep(5)
-                self.connect()
-                self.run_sudo_su()
+                self.log(f"Timed out after {timeout}s — reconnecting...")
                 break
             if self.shell.recv_ready():
                 chunk = self.shell.recv(65536).decode("utf-8", errors="replace")

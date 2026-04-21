@@ -58,6 +58,9 @@ class SSHHelper:
             password=self.password,
             timeout=30,
         )
+        transport = self.client.get_transport()
+        if transport:
+            transport.set_keepalive(60)
         self.log("Connected successfully.")
 
     def disconnect(self):
@@ -193,6 +196,16 @@ class SSHHelper:
             elapsed = time.time() - start_time
             if elapsed > timeout:
                 self.log(f"Timed out after {timeout}s — reconnecting...")
+                try:
+                    self.disconnect()
+                except Exception:
+                    pass
+                try:
+                    time.sleep(5)
+                    self.connect()
+                    self.run_sudo_su()
+                except Exception:
+                    self.log("Could not reconnect (server may be rebooting).")
                 break
             time.sleep(0.5)
             if self.shell.recv_ready():
@@ -231,6 +244,16 @@ class SSHHelper:
             elapsed = time.time() - start_time
             if elapsed > timeout:
                 self.log(f"Timed out after {timeout}s — reconnecting...")
+                try:
+                    self.disconnect()
+                except Exception:
+                    pass
+                try:
+                    time.sleep(5)
+                    self.connect()
+                    self.run_sudo_su()
+                except Exception:
+                    self.log("Could not reconnect (server may be rebooting).")
                 break
             if self.shell.recv_ready():
                 chunk = self.shell.recv(65536).decode("utf-8", errors="replace")
@@ -304,9 +327,17 @@ def install_build_manually(ssh, config, service):
     ssh.connect()
     ssh.run_sudo_su()
 
+    # Add build server to /etc/hosts if not already present
+    build_host_entry = "100.67.7.30 build24.eng.zscaler.com"
+    ssh.run_as_root(
+        f"grep -q 'build24.eng.zscaler.com' /etc/hosts || echo '{build_host_entry}' >> /etc/hosts",
+        timeout=10,
+    )
+    ssh.log(f"Ensured /etc/hosts has: {build_host_entry}")
+
     filename = build_path.rstrip("/").split("/")[-1]
     remote_build = f"/home/zsroot/{filename}"
-    fetch_cmd = f"fetch -v -o {remote_build} '{build_path}'"
+    fetch_cmd = f"fetch -v -o '{remote_build}' '{build_path}'"
     
     # -- Create the install script on the remote server --
     script_path = "/home/zsroot/run_build_install.sh"
@@ -339,11 +370,11 @@ def install_build_manually(ssh, config, service):
     ssh.log(f"  Build should install in ~80 seconds (20s wait + install time).")
     ssh.run_as_root(
         f"sh {script_path}",
-        timeout=90,
+        timeout=200,
     )
 
     # -- Wait some 30 for first attempt --
-    ssh.log("Waiting some 30 for build to complete...")
+    ssh.log("Waiting some 30 sec for build to complete...")
     time.sleep(30)
 
     # -- Reconnect (sshd may have restarted during install) --
@@ -526,7 +557,7 @@ def run_zadp_setup(ssh, config):
     # -- Step 7: Show final status
     ssh.log("\n--- Step 7: Final status ---")
     ssh.run("export ZSINSTANCE=/sc")
-    ssh.run_as_root("/sc/update/zadp restart",timeout=60)
+    ssh.run_as_root("/sc/update/zadp restart",timeout=220)
     ssh.run_as_root("/sc/update/zadp status",timeout=60)
 
     ssh.log("\n" + "=" * 50)

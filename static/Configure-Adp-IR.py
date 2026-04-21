@@ -77,6 +77,9 @@ class SSHHelper:
             password=self.password,
             timeout=30,
         )
+        transport = self.client.get_transport()
+        if transport:
+            transport.set_keepalive(60)
         print(f"  Connected successfully.")
 
     def disconnect(self):
@@ -266,7 +269,17 @@ class SSHHelper:
         while True:
             elapsed = time.time() - start_time
             if elapsed > timeout:
-                print(f"  Timed out after {timeout}s")
+                print(f"  Timed out after {timeout}s — reconnecting...")
+                try:
+                    self.disconnect()
+                except Exception:
+                    pass
+                try:
+                    time.sleep(5)
+                    self.connect()
+                    self.run_sudo_su()
+                except Exception:
+                    print("  Could not reconnect (server may be rebooting).")
                 break
 
             if self.shell.recv_ready():
@@ -327,7 +340,17 @@ class SSHHelper:
         while True:
             elapsed = time.time() - start_time
             if elapsed > timeout:
-                print(f"\n  Timed out after {timeout}s")
+                print(f"\n  Timed out after {timeout}s — reconnecting...")
+                try:
+                    self.disconnect()
+                except Exception:
+                    pass
+                try:
+                    time.sleep(5)
+                    self.connect()
+                    self.run_sudo_su()
+                except Exception:
+                    print("  Could not reconnect (server may be rebooting).")
                 break
 
             if self.shell.recv_ready():
@@ -765,6 +788,14 @@ def install_build_manually(ssh, config, service):
         print(f"")
         print(f"  After installing, you can re-run this script if needed.")
         return False
+
+    # Add build server to /etc/hosts if not already present
+    build_host_entry = "100.67.7.30 build24.eng.zscaler.com"
+    ssh.run_as_root(
+        f"grep -q 'build24.eng.zscaler.com' /etc/hosts || echo '{build_host_entry}' >> /etc/hosts",
+        timeout=10,
+    )
+    print(f"  Ensured /etc/hosts has: {build_host_entry}")
 
     # If it's a URL, download it to /home/zsroot/ on the server
     if build_path.startswith("http://") or build_path.startswith("https://"):

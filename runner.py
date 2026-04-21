@@ -373,6 +373,34 @@ def install_build_manually(ssh, config, service):
     return False
 
 
+def run_cleanup(ssh, service_cmd):
+    """Run cleanup for a service, handling 'being attempted by pid' lock."""
+    import re
+    output, _ = ssh.run_interactive_as_root(
+        f"/sc/update/{service_cmd} cleanup",
+        responses=[
+            ("cannot be reversed", "y"),
+            ("reboot?", "y"),
+        ],
+        timeout=20,
+    )
+    if "being attempted by pid" in output:
+        match = re.search(r"being attempted by pid\s+(\d+)", output)
+        if match:
+            pid = match.group(1)
+            ssh.log(f"Service locked by pid {pid} — killing it...")
+            ssh.run_as_root(f"kill -9 {pid}", timeout=10)
+            time.sleep(2)
+            ssh.run_interactive_as_root(
+                f"/sc/update/{service_cmd} cleanup",
+                responses=[
+                    ("cannot be reversed", "y"),
+                    ("reboot?", "y"),
+                ],
+                timeout=20,
+            )
+
+
 # ====================================================================== #
 #  ZADP Setup
 # ====================================================================== #
@@ -407,14 +435,7 @@ def run_zadp_setup(ssh, config):
     ssh.log("\n--- Step 2: Cleaning up old ZADP installation ---")
     ssh.log("This will remove the old install and reboot the server.")
     if ssh.command_exists("zadp"):
-        ssh.run_interactive_as_root(
-            "/sc/update/zadp cleanup",
-            responses=[
-                ("cannot be reversed", "y"),
-                ("reboot?", "y"),
-            ],
-            timeout=20,
-        )
+        run_cleanup(ssh, "zadp")
         ssh.wait_for_reboot()
         ssh.log("Cleanup done. Server is back.")
         ssh.run_sudo_su()
@@ -553,14 +574,7 @@ def run_ir_setup(ssh, config):
     ssh.log("\n--- Step 2: Cleaning up old ZIRSVR installation ---")
     ssh.log("This will remove the old install and reboot the server.")
     if ssh.command_exists("zirsvr"):
-        ssh.run_interactive_as_root(
-            "/sc/update/zirsvr cleanup",
-            responses=[
-                ("cannot be reversed", "y"),
-                ("reboot?", "y"),
-            ],
-            timeout=20,
-        )
+        run_cleanup(ssh, "zirsvr")
         ssh.wait_for_reboot()
         ssh.log("Cleanup done. Server is back.")
         ssh.run_sudo_su()

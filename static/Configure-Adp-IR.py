@@ -145,7 +145,7 @@ class SSHHelper:
 
     def file_exists(self, filepath):
         """Returns True if the file exists on the remote server."""
-        output, _, _ = self.run(f"test -f {filepath} && echo EXISTS || echo MISSING")
+        output, _, _ = self.run(f"test -f '{filepath}' && echo EXISTS || echo MISSING")
         return "EXISTS" in output
 
     # -- Check if a command exists on the server ----------------------- #
@@ -165,7 +165,7 @@ class SSHHelper:
 
     def read_file(self, filepath):
         """Read the contents of a file on the remote server."""
-        output, _, _ = self.run(f"cat {filepath}")
+        output, _, _ = self.run(f"cat '{filepath}'")
         return output
 
     # -- Insert a line into a file after a given line number ----------- #
@@ -176,7 +176,7 @@ class SSHHelper:
         next_line = line_number + 1
         # Portable: head/echo/tail works on both GNU and BSD (unlike sed -i)
         self.run_as_root(
-            f"{{ head -n {line_number} {filepath}; echo '{safe_line}'; tail -n +{next_line} {filepath}; }} > /tmp/_edit.tmp && mv /tmp/_edit.tmp {filepath}"
+            f"{{ head -n {line_number} '{filepath}'; echo '{safe_line}'; tail -n +{next_line} '{filepath}'; }} > /tmp/_edit.tmp && mv /tmp/_edit.tmp '{filepath}'"
         )
     
     def _recv_until_quiet(self, timeout=2):
@@ -444,14 +444,14 @@ def run_zadp_setup(ssh, config):
         new_entries = []
         if cdss_ip:
             new_entries.append(f"{cdss_ip}  zdistribute.{cloud}.net")
-        new_entries.append(f"{smui_ip}  admin.{cloud}.net zsapi.{cloud}.net")
+        new_entries.append(f"{smui_ip}  zsapi.{cloud}.net")
         new_entries.append(f"{ca_ip}  smcacluster.{cloud}.net")
 
         # Read current /etc/hosts and remove old cloud entries
         current_hosts = ssh.read_file("/etc/hosts")
         cleaned = [
             line for line in current_hosts.split("\n")
-            if f".{cloud}.net" not in line
+            if not any(h in line for h in ["zdistribute.", "zsapi.", "admin.", "smcacluster."])
         ]
 
         # Write back with our new entries
@@ -482,7 +482,7 @@ def run_zadp_setup(ssh, config):
 
 
     output, _ = ssh.run_interactive_as_root(
-        f"/sc/update/zadp configure {zip_path}",
+        f"/sc/update/zadp configure '{zip_path}'",
         responses=[
             ("domain name", server_ip),      # self-signed cert domain
             ("pass phrase", ""),              # no passphrase
@@ -622,7 +622,7 @@ def run_ir_setup(ssh, config):
             current_hosts = ssh.read_file("/etc/hosts")
             cleaned = [
                 line for line in current_hosts.split("\n")
-                if f"zdistribute.{cloud}.net" not in line
+                if not any(h in line for h in ["zdistribute.", "zsapi.", "admin.", "smcacluster."])
             ]
             new_hosts_content = "\n".join(cleaned).rstrip() + "\n" + hosts_line + "\n"
             # Write via a temp file to avoid quoting issues
@@ -653,7 +653,7 @@ def run_ir_setup(ssh, config):
         return False
 
     output, _ = ssh.run_interactive_as_root(
-        f"/sc/update/zirsvr configure {zip_path}",
+        f"/sc/update/zirsvr configure '{zip_path}'",
         responses=[
             # Port for Incident Receiver (default 1344)
             ("icaps_port", "1344"),

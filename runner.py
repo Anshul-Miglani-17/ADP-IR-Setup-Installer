@@ -110,7 +110,7 @@ class SSHHelper:
     # -- File / command helpers ---------------------------------------- #
 
     def file_exists(self, filepath):
-        output, _, _ = self.run(f"test -f {filepath} && echo EXISTS || echo MISSING")
+        output, _, _ = self.run(f"test -f '{filepath}' && echo EXISTS || echo MISSING")
         return "EXISTS" in output
 
     def command_exists(self, cmd):
@@ -120,7 +120,7 @@ class SSHHelper:
         return "FOUND" in output
 
     def read_file(self, filepath):
-        output, _, _ = self.run(f"cat {filepath}")
+        output, _, _ = self.run(f"cat '{filepath}'")
         return output
 
     def insert_line_after(self, filepath, line_number, new_line):
@@ -128,7 +128,7 @@ class SSHHelper:
         next_line = line_number + 1
         # Portable: head/echo/tail works on both GNU and BSD (unlike sed -i)
         self.run_as_root(
-            f"{{ head -n {line_number} {filepath}; echo '{safe_line}'; tail -n +{next_line} {filepath}; }} > /tmp/_edit.tmp && mv /tmp/_edit.tmp {filepath}"
+            f"{{ head -n {line_number} '{filepath}'; echo '{safe_line}'; tail -n +{next_line} '{filepath}'; }} > /tmp/_edit.tmp && mv /tmp/_edit.tmp '{filepath}'"
         )
 
     # -- Become root --------------------------------------------------- #
@@ -430,12 +430,12 @@ def run_zadp_setup(ssh, config):
         new_entries = []
         if cdss_ip:
             new_entries.append(f"{cdss_ip}  zdistribute.{cloud}.net")
-        new_entries.append(f"{smui_ip}  admin.{cloud}.net zsapi.{cloud}.net")
+        new_entries.append(f"{smui_ip}  zsapi.{cloud}.net")
         new_entries.append(f"{ca_ip}  smcacluster.{cloud}.net")
         current_hosts = ssh.read_file("/etc/hosts")
         cleaned = [
             line for line in current_hosts.split("\n")
-            if f".{cloud}.net" not in line
+            if not any(h in line for h in ["zdistribute.", "zsapi.", "admin.", "smcacluster."])
         ]
         new_hosts_content = "\n".join(cleaned).rstrip() + "\n\n" + "\n".join(new_entries) + "\n"
         ssh.run(f"cat << 'HOSTS_EOF' > /tmp/hosts_new\n{new_hosts_content}\nHOSTS_EOF")
@@ -454,7 +454,7 @@ def run_zadp_setup(ssh, config):
         ssh.log("ERROR: 'zadp' command not found. Reinstall VM...")
         return False
     output, _ = ssh.run_interactive_as_root(
-        f"/sc/update/zadp configure {zip_path}",
+        f"/sc/update/zadp configure '{zip_path}'",
         responses=[
             ("domain name", server_ip),
             ("pass phrase", ""),
@@ -576,7 +576,7 @@ def run_ir_setup(ssh, config):
             current_hosts = ssh.read_file("/etc/hosts")
             cleaned = [
                 line for line in current_hosts.split("\n")
-                if f"zdistribute.{cloud}.net" not in line
+                if not any(h in line for h in ["zdistribute.", "zsapi.", "admin.", "smcacluster."])
             ]
             new_hosts_content = "\n".join(cleaned).rstrip() + "\n" + hosts_line + "\n"
             ssh.run(f"cat << 'HOSTS_EOF' > /tmp/hosts_new\n{new_hosts_content}\nHOSTS_EOF")
@@ -600,7 +600,7 @@ def run_ir_setup(ssh, config):
         ssh.log("'zirsvr' command not found. Reinstall VM...")
         return False
     output, _ = ssh.run_interactive_as_root(
-        f"/sc/update/zirsvr configure {zip_path}",
+        f"/sc/update/zirsvr configure '{zip_path}'",
         responses=[
             ("icaps_port", "1344"),
             ("sftp or s3", "sftp"),

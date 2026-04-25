@@ -548,7 +548,7 @@ def run_zadp_setup(ssh, config):
                 f"  {{ head -n 1 /sc/conf/sc.conf; echo 'zsapi_port={smui_port}'; tail -n +2 /sc/conf/sc.conf; }} > /tmp/_edit.tmp && mv /tmp/_edit.tmp /sc/conf/sc.conf; "
                 f"fi", timeout=10
             )
-            ssh.log(f"Set: zsapi_port={smui_port}")
+            ssh.log(f"Set: zsapi_port = {smui_port}")
         else:
             ssh.log("zsapi_port: using default (443)")
     else:
